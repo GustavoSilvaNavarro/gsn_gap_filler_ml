@@ -2,15 +2,22 @@
   "cSpell.words": [
     "celerybeat",
     "dmypy",
+    "docformatter",
+    "docstrings",
     "htmlcov",
     "ipynb",
     "ipython",
+    "isort",
     "mkdocs",
     "mypy",
     "nosetests",
     "Pipfile",
     "pycache",
+    "pycodestyle",
+    "pydantic",
+    "pydocstyle",
     "pyenv",
+    "pylint",
     "pypackages",
     "pytest",
     "qodo",
@@ -22,5 +29,40 @@
     "spyproject",
     "venv",
     "webassets"
-  ]
+  ],
+
+  // General
+  "editor.suggestSelection": "first",
+  "editor.defaultFormatter": null,
+  "editor.insertSpaces": true,
+  "editor.formatOnSave": true,
+  "editor.formatOnPaste": true,
+  "editor.rulers": [80, 120],
+  "editor.tabSize": 4,
+  "editor.codeActionsOnSave": {
+  "source.organizeImports": "explicit"
+  },
+
+  // Python
+  "[python]": {
+    "editor.defaultFormatter": "charliermarsh.ruff",
+    "files.trimTrailingWhitespace": true,
+    "files.insertFinalNewline": true,
+    "files.trimFinalNewlines": true,
+    "editor.formatOnSave": true,
+    "editor.formatOnType": true,
+    "editor.insertSpaces": true,
+    "editor.tabSize": 4,
+  },
+
+  // Native type hints
+  "python.analysis.typeCheckingMode": "off",
+  "python.terminal.activateEnvInCurrentTerminal": true,
+  "python.analysis.completeFunctionParens": true,
+  "python.analysis.useLibraryCodeForTypes": true,
+  "python.analysis.autoImportCompletions": true,
+  "python.analysis.inlayHints.variableTypes": true,
+  "python.analysis.inlayHints.functionReturnTypes": true,
+  "python.analysis.inlayHints.callArgumentNames": "all",
+  "python.analysis.gotoDefinitionInStringLiteral": true,
 }

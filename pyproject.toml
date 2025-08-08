@@ -1,0 +1,42 @@
+[tool.mypy]
+python_version = "3.13"
+disallow_untyped_defs = true
+exclude = ".venv"
+plugins = ["pydantic.mypy"]
+ignore_missing_imports = true
+check_untyped_defs = true
+strict = true
+
+[tool.ruff]
+line-length = 120
+target-version = "py313"
+preview = true
+exclude = ["migrations/versions/*"]  # Add this line to ignore rules for the specified folder
+
+lint.select = ["ALL"] # Activates all available linting rules in Ruff.
+lint.ignore = [ # this list deactivates rules from ruff
+    "CPY001", # Missing copyright notice at top of file
+    "D100", # Missing docstring in public module
+    "UP007", # Use `X | Y` for type annotations
+    "D104", # Missing docstring in public package
+    "D413", # Missing blank line after last section
+    "EXE002"
+]
+
+[tool.ruff.format]
+docstring-code-format = true
+docstring-code-line-length = 120
+
+[tool.docformatter]
+pre-description-newline = true # Ensures that multiline docstrings start on the same line as the summary.
+pre-summary-newline = true     # Ensures that multiline docstrings start on a new line.
+wrap-descriptions = 120        # Wraps descriptions at 120 characters, ensuring consistent line width.
+wrap-summaries = 120           # Wraps summary lines only if they exceed 120 characters.
+recursive = true               # Recursively formats all Python files in the specified directories.
+
+#! So this project does not use pylint, this rules is to turn off errors from the extensions
+[tool.pylint]
+disable = [
+    "C0114", # Missing module docstring
+    "C0301" # Line too long
+]
