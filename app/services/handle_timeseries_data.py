@@ -108,14 +108,14 @@ def check_frequency(df: DataFrame) -> Timedelta | None:
     return None
 
 
-def resampling_data_based_on_freq(df: DataFrame, td: Timedelta) -> DataFrame:
+def resampling_data_based_on_freq(df: DataFrame, td: Timedelta | str) -> DataFrame:
     """Resample the DataFrame based on the given time frequency.
 
     Parameters
     ----------
     df : DataFrame
         The DataFrame containing a 'datetime' column.
-    td : Timedelta
+    td : Timedelta | str
         The time frequency to resample the data.
 
     Returns
@@ -124,21 +124,23 @@ def resampling_data_based_on_freq(df: DataFrame, td: Timedelta) -> DataFrame:
         The resampled DataFrame with a 'time' column.
     """
     df = df.set_index("datetime")
-    df_resampled = df.resample(td).asfreq()
-    df_resampled["time"] = df_resampled.index
-    return df_resampled
+    return df.resample(td).asfreq()
 
 
-def plotting_data(df: DataFrame) -> None:
+def plotting_data(df: DataFrame, time_col_name: str, show: bool = True) -> None:
     """Plot energy consumption data over time.
 
     Parameters
     ----------
     df : DataFrame
         The DataFrame containing 'datetime' and 'energy' columns.
+    time_col_name : str
+        The name of the column containing time or datetime values.
+    show : bool, optional
+        Whether to display the plot (default is True).
     """
     plt.figure(figsize=(10, 6))
-    plt.plot(df["time"], df["energy"])
+    plt.plot(df[time_col_name], df["energy"])
 
     # Add labels and a title
     plt.xlabel("Timestamp")
@@ -147,4 +149,5 @@ def plotting_data(df: DataFrame) -> None:
     plt.grid(visible=True)
     plt.tight_layout()
 
-    plt.show()
+    if show:
+        plt.show()

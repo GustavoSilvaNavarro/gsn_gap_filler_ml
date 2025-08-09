@@ -20,7 +20,10 @@ lint.ignore = [ # this list deactivates rules from ruff
     "UP007", # Use `X | Y` for type annotations
     "D104", # Missing docstring in public package
     "D413", # Missing blank line after last section
-    "EXE002"
+    "EXE002", # Disables warnings for missing shebang lines in executable scripts
+    "FBT001", # Omitting to avoid "Boolean Trap" warnings on simple function arguments.
+    "FBT002", # Omitting for consistency with FBT001.
+    "PLR2004", # Disables 'magic value used in comparison' warnings
 ]
 
 [tool.ruff.format]
