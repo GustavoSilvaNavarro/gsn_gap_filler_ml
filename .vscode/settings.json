@@ -1,6 +1,7 @@
 {
   "cSpell.words": [
     "celerybeat",
+    "dateutil",
     "dmypy",
     "docformatter",
     "docstrings",
@@ -22,6 +23,7 @@
     "pypackages",
     "pytest",
     "qodo",
+    "relativedelta",
     "ropeproject",
     "scrapy",
     "sdist",
