@@ -11,6 +11,7 @@
     "mkdocs",
     "mypy",
     "nosetests",
+    "openpyxl",
     "Pipfile",
     "pycache",
     "pycodestyle",
