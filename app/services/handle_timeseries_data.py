@@ -1,6 +1,7 @@
+import matplotlib.pyplot as plt
 import pandas as pd
 from dateutil.relativedelta import relativedelta
-from pandas import DataFrame
+from pandas import DataFrame, Timedelta
 
 
 def parse_timeseries_data(file_path: str) -> DataFrame:
@@ -58,6 +59,8 @@ def parse_timeseries_data(file_path: str) -> DataFrame:
     # Renaming energy column name
     old_energy_name = df.columns[0]
     df = df.rename(columns={old_energy_name: "energy"})
+    df = df.sort_values(by="datetime", ascending=True)
+    df = df.drop_duplicates(subset=["datetime"], keep="first")
     return df[["datetime", "energy"]]
 
 
@@ -76,12 +79,12 @@ def check_minimum_data_to_process(df: DataFrame) -> bool:
     """
     max_timestamp: pd.Timestamp = df["datetime"].max()
     min_timestamp: pd.Timestamp = df["datetime"].min()
-    next_year = min_timestamp + relativedelta(years=1) - relativedelta(minutes=15)
+    next_year = min_timestamp + relativedelta(years=1) - relativedelta(minutes=60)
 
     return max_timestamp >= next_year
 
 
-def check_frequency(df: DataFrame) -> float | None:
+def check_frequency(df: DataFrame) -> Timedelta | None:
     """Determine the most frequent time interval (in minutes) between consecutive 'datetime' entries in the DataFrame.
 
     Parameters
@@ -97,9 +100,51 @@ def check_frequency(df: DataFrame) -> float | None:
     time_diffs = df["datetime"].diff()
 
     # Find the most frequent difference
-    most_frequent_freq = time_diffs.mode()[0]
+    most_frequent_freq: Timedelta = time_diffs.mode()[0]
     frequency_in_minutes: float = most_frequent_freq.total_seconds() / 60
 
     if frequency_in_minutes in {5, 15, 30, 60}:
-        return frequency_in_minutes
+        return most_frequent_freq
     return None
+
+
+def resampling_data_based_on_freq(df: DataFrame, td: Timedelta) -> DataFrame:
+    """Resample the DataFrame based on the given time frequency.
+
+    Parameters
+    ----------
+    df : DataFrame
+        The DataFrame containing a 'datetime' column.
+    td : Timedelta
+        The time frequency to resample the data.
+
+    Returns
+    -------
+    DataFrame
+        The resampled DataFrame with a 'time' column.
+    """
+    df = df.set_index("datetime")
+    df_resampled = df.resample(td).asfreq()
+    df_resampled["time"] = df_resampled.index
+    return df_resampled
+
+
+def plotting_data(df: DataFrame) -> None:
+    """Plot energy consumption data over time.
+
+    Parameters
+    ----------
+    df : DataFrame
+        The DataFrame containing 'datetime' and 'energy' columns.
+    """
+    plt.figure(figsize=(10, 6))
+    plt.plot(df["time"], df["energy"])
+
+    # Add labels and a title
+    plt.xlabel("Timestamp")
+    plt.ylabel("Energy")
+    plt.title("Energy Consumption")
+    plt.grid(visible=True)
+    plt.tight_layout()
+
+    plt.show()

@@ -5,6 +5,7 @@
     "dmypy",
     "docformatter",
     "docstrings",
+    "figsize",
     "htmlcov",
     "ipynb",
     "ipython",
@@ -31,7 +32,9 @@
     "spyderproject",
     "spyproject",
     "venv",
-    "webassets"
+    "webassets",
+    "xlabel",
+    "ylabel"
   ],
 
   // General
