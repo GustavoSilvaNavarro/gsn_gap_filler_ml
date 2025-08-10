@@ -123,7 +123,6 @@ def resampling_data_based_on_freq(df: DataFrame, td: Timedelta | str) -> DataFra
     DataFrame
         The resampled DataFrame with a 'time' column.
     """
-    df = df.set_index("datetime")
     return df.resample(td).asfreq()
 
 
