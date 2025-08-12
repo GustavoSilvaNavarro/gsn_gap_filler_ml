@@ -1,13 +1,17 @@
 import matplotlib.pyplot as plt
 import pandas as pd
 from dateutil.relativedelta import relativedelta
+from fastapi import UploadFile
 from pandas import DataFrame, Timedelta
 
+from app.adapters import logger
 
-def parse_timeseries_data(file_path: str) -> DataFrame:
+
+def parse_timeseries_data(file: UploadFile, file_path: str) -> DataFrame:
     """Read a CSV or Excel file and process datetime columns based on a simplified set of rules.
 
     Args:
+        file (UploadFile): The uploaded file object (.csv or .xlsx).
         file_path (str): The path to the input file (.csv or .xlsx).
 
     Returns:
@@ -19,9 +23,9 @@ def parse_timeseries_data(file_path: str) -> DataFrame:
         ValueError: If the column count is invalid or a column cannot be converted to datetime.
     """
     if file_path.endswith(".csv"):
-        df = pd.read_csv(file_path)
+        df = pd.read_csv(file)
     elif file_path.endswith(".xlsx"):
-        df = pd.read_excel(file_path)
+        df = pd.read_excel(file)
     else:
         err_msg = f"Unsupported file format -> {file_path}. Please provide a .csv or .xlsx file."
         raise TypeError(err_msg)
@@ -61,6 +65,7 @@ def parse_timeseries_data(file_path: str) -> DataFrame:
     df = df.rename(columns={old_energy_name: "energy"})
     df = df.sort_values(by="datetime", ascending=True)
     df = df.drop_duplicates(subset=["datetime"], keep="first")
+    logger.info("👻 Data has been extracted and minimal processed has been added")
     return df[["datetime", "energy"]]
 
 

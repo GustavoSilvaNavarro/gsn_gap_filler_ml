@@ -80,10 +80,10 @@ check:
 	@ruff check ${PYFILES}
 
 # Local Start up
-dev: upgrade
+dev:
 	uvicorn app:app --reload --proxy-headers --host 0.0.0.0 --port ${PORT}
 
-start: upgrades
+start: upgrade
 	uvicorn app:app --proxy-headers --host 0.0.0.0 --port ${PORT}
 
 # Docker command
