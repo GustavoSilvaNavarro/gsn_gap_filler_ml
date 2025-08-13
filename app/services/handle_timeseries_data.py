@@ -48,12 +48,6 @@ def parse_timeseries_data(file: UploadFile, file_path: str) -> DataFrame:
     elif num_columns == 2:
         datetime_col, _ = df.columns
 
-        try:
-            pd.to_datetime(df[datetime_col].iloc[0])
-        except (pd.errors.ParserError, ValueError, TypeError) as err:
-            err_msg = f"Error: {datetime_col} column cannot be converted to a datetime."
-            raise ValueError(err_msg) from err
-
         df["datetime"] = pd.to_datetime(df[datetime_col])
         df = df.drop(columns=[datetime_col])
     else:
