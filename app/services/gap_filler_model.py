@@ -1,6 +1,8 @@
 from pandas import DataFrame
 from sklearn.ensemble import RandomForestRegressor
 
+from app.adapters import logger
+
 
 def get_percentage_of_missing_data(df: DataFrame, missing_data_df: DataFrame) -> float:
     """Calculate the percentage of missing data in a DataFrame.
@@ -57,7 +59,7 @@ def predict_gaps_on_timeseries_data(df: DataFrame, target_column: str = "energy"
     df_predict = initial_df[initial_df[target_column].isna()]
 
     percentage = get_percentage_of_missing_data(df=initial_df, missing_data_df=df_predict)
-    print(f"Total missing values is around {(percentage * 100):.2f} %")
+    logger.info(f"Total missing values is around {(percentage * 100):.2f} %")
 
     if percentage > 0.4:
         err_msg = "Gaps to filled exceed 40%, makes prediction much unreliable"

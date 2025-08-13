@@ -69,13 +69,15 @@ def parse_timeseries_data(file: UploadFile, file_path: str) -> DataFrame:
     return df[["datetime", "energy"]]
 
 
-def check_minimum_data_to_process(df: DataFrame) -> bool:
+def check_minimum_data_to_process(df: DataFrame, freq: float) -> bool:
     """Check if the DataFrame contains at least one year of data.
 
     Parameters
     ----------
     df : DataFrame
         The DataFrame containing a 'datetime' column.
+    freq : float
+        The frequency in minutes between data points.
 
     Returns
     -------
@@ -84,12 +86,12 @@ def check_minimum_data_to_process(df: DataFrame) -> bool:
     """
     max_timestamp: pd.Timestamp = df["datetime"].max()
     min_timestamp: pd.Timestamp = df["datetime"].min()
-    next_year = min_timestamp + relativedelta(years=1) - relativedelta(minutes=60)
+    next_year = min_timestamp + relativedelta(years=1) - relativedelta(minutes=freq)
 
     return max_timestamp >= next_year
 
 
-def check_frequency(df: DataFrame) -> Timedelta | None:
+def check_frequency(df: DataFrame) -> dict[str, Timedelta | float]:
     """Determine the most frequent time interval (in minutes) between consecutive 'datetime' entries in the DataFrame.
 
     Parameters
@@ -101,16 +103,23 @@ def check_frequency(df: DataFrame) -> Timedelta | None:
     -------
     float or None
         The most frequent interval in minutes if it matches one of {5, 15, 30, 60}, otherwise None.
+
+    Raises
+    ------
+    ValueError
+        If the frequency is not one of the supported values {5, 15, 30, 60}.
     """
     time_diffs = df["datetime"].diff()
 
     # Find the most frequent difference
-    most_frequent_freq: Timedelta = time_diffs.mode()[0]
-    frequency_in_minutes: float = most_frequent_freq.total_seconds() / 60
+    most_frequent_time: Timedelta = time_diffs.mode()[0]
+    frequency_in_minutes: float = most_frequent_time.total_seconds() / 60
 
-    if frequency_in_minutes in {5, 15, 30, 60}:
-        return most_frequent_freq
-    return None
+    if frequency_in_minutes not in {5, 15, 30, 60}:
+        err_msg = f"Current frequency is not supported -> freq: {frequency_in_minutes}"
+        raise ValueError(err_msg)
+
+    return {"freq_time": most_frequent_time, "freq": frequency_in_minutes}
 
 
 def resampling_data_based_on_freq(df: DataFrame, td: Timedelta | str) -> DataFrame:
