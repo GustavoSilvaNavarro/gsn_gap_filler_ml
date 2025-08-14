@@ -5,6 +5,9 @@ from fastapi import UploadFile
 from pandas import DataFrame, Timedelta
 
 from app.adapters import logger
+from app.server.errors import BadRequestError
+
+from .gap_filler_model import predict_gaps_on_timeseries_data
 
 
 def parse_timeseries_data(file: UploadFile, file_path: str) -> DataFrame:
@@ -80,7 +83,7 @@ def check_minimum_data_to_process(df: DataFrame, freq: float) -> bool:
     """
     max_timestamp: pd.Timestamp = df["datetime"].max()
     min_timestamp: pd.Timestamp = df["datetime"].min()
-    next_year = min_timestamp + relativedelta(years=1) - relativedelta(minutes=freq)
+    next_year = min_timestamp + relativedelta(months=4) - relativedelta(minutes=freq)
 
     return max_timestamp >= next_year
 
@@ -116,6 +119,22 @@ def check_frequency(df: DataFrame) -> dict[str, Timedelta | float]:
     return {"freq_time": most_frequent_time, "freq": frequency_in_minutes}
 
 
+def resampling_5min_freq_to_15min_req(df: DataFrame) -> DataFrame:
+    """Resample a DataFrame from 5-minute frequency to 15-minute frequency by averaging.
+
+    Parameters
+    ----------
+    df : DataFrame
+        The DataFrame to be resampled.
+
+    Returns
+    -------
+    DataFrame
+        The resampled DataFrame with 15-minute frequency.
+    """
+    return df.resample("15min").mean()
+
+
 def resampling_data_based_on_freq(df: DataFrame, td: Timedelta | str) -> DataFrame:
     """Resample the DataFrame based on the given time frequency.
 
@@ -132,6 +151,49 @@ def resampling_data_based_on_freq(df: DataFrame, td: Timedelta | str) -> DataFra
         The resampled DataFrame with a 'time' column.
     """
     return df.resample(td).asfreq()
+
+
+def process_timeseries_data_at_different_freq(file: UploadFile, file_extension: str) -> DataFrame:
+    """Process timeseries data at different frequencies, filling gaps and resampling as needed.
+
+    Parameters
+    ----------
+    file : UploadFile
+        The uploaded file object (.csv or .xlsx).
+    file_extension : str
+        The file extension indicating the type of file.
+
+    Returns
+    -------
+    DataFrame
+        The processed DataFrame resampled to the required frequency.
+
+    Raises
+    ------
+    BadRequestError
+        If the timeseries data is too short to process.
+    """
+    parsed_df = parse_timeseries_data(file=file, file_path=f".{file_extension}")
+
+    freq = check_frequency(df=parsed_df)
+    has_min_data = check_minimum_data_to_process(df=parsed_df, freq=freq["freq"])
+
+    if not has_min_data:
+        err_msg = "Timeseries data is to short, needs more data to process"
+        raise BadRequestError(err_msg)
+
+    pre_process_df = parsed_df.set_index("datetime")
+    df_resampled = resampling_data_based_on_freq(df=pre_process_df, td=freq["freq_time"])
+    new_df = predict_gaps_on_timeseries_data(df=df_resampled, target_column="energy")
+    if freq["freq"] == 15:
+        return new_df
+
+    if freq["freq"] == 5:
+        # NOTE: need to do a resampling by averaging
+        return resampling_5min_freq_to_15min_req(df=new_df)
+
+    default_resample = resampling_data_based_on_freq(df=new_df, td="15min")
+    return default_resample.interpolate(method="linear")
 
 
 def plotting_data(df: DataFrame, time_col_name: str, show: bool = True) -> None:
@@ -157,4 +219,6 @@ def plotting_data(df: DataFrame, time_col_name: str, show: bool = True) -> None:
     plt.tight_layout()
 
     if show:
+        plt.show()
+        plt.show()
         plt.show()

@@ -4,6 +4,8 @@ from .handle_timeseries_data import (
     check_minimum_data_to_process,
     parse_timeseries_data,
     plotting_data,
+    process_timeseries_data_at_different_freq,
+    resampling_5min_freq_to_15min_req,
     resampling_data_based_on_freq,
 )
 
@@ -14,5 +16,7 @@ __all__ = [
     "parse_timeseries_data",
     "plotting_data",
     "predict_gaps_on_timeseries_data",
+    "process_timeseries_data_at_different_freq",
+    "resampling_5min_freq_to_15min_req",
     "resampling_data_based_on_freq",
 ]
