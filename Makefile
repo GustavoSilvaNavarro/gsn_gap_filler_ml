@@ -18,23 +18,6 @@ install-uv:
 install-dev-uv:
 	uv pip install -r requirements_dev.txt
 
-# Async migrations
-async-alembic:
-	alembic init -t async migrations
-
-migrate:
-	set -a; . ./.dev.env; alembic revision --autogenerate -m "$(filename)"
-
-upgrade:
-	set -a; . ./.dev.env; alembic upgrade head
-
-downgrade:
-	set -a; . ./.dev.env; alembic downgrade $(version)
-
-head:
-	set -a; . ./.dev.env; alembic current
-
-
 # hooks
 setup-git-hooks:
 	@echo "\n👻 Setting up pre commit hook to maintain code quality"
