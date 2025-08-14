@@ -22,6 +22,7 @@
     "mkdocs",
     "mypy",
     "nosetests",
+    "onupdate",
     "openpyxl",
     "Pipfile",
     "pycache",
