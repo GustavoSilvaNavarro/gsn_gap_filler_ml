@@ -1,5 +1,6 @@
 {
   "cSpell.words": [
+    "asyncpg",
     "celerybeat",
     "dateutil",
     "dayofweek",
@@ -17,6 +18,7 @@
     "jsonable",
     "levelname",
     "matplotlib",
+    "meditherakis",
     "mkdocs",
     "mypy",
     "nosetests",
@@ -27,8 +29,10 @@
     "pydantic",
     "pydocstyle",
     "pyenv",
+    "PYFILES",
     "pylint",
     "pypackages",
+    "pyproject",
     "pytest",
     "pythonjsonlogger",
     "qodo",
@@ -40,6 +44,7 @@
     "Spyder",
     "spyderproject",
     "spyproject",
+    "timescaledb",
     "uvicorn",
     "venv",
     "webassets",
