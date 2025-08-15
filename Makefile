@@ -80,7 +80,7 @@ check:
 	@ruff check ${PYFILES}
 
 # Local Start up
-dev:
+dev: upgrade
 	uvicorn app:app --reload --proxy-headers --host 0.0.0.0 --port ${PORT}
 
 start: upgrade

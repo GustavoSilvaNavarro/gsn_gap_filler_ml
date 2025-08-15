@@ -1,3 +1,4 @@
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
@@ -9,6 +10,7 @@ from app.server.errors import CustomError
 
 from .adapters import init_loggers, logger
 from .config import config
+from .connections import connections
 
 
 async def start_app(app=FastAPI) -> FastAPI:
@@ -29,10 +31,11 @@ async def start_app(app=FastAPI) -> FastAPI:
 async def shutdown_app() -> None:
     """Shutdown FastAPI Server and Connections."""
     logger.info("Shutdown -> Server shutting down")
+    await connections.engine.dispose()
 
 
 @asynccontextmanager
-async def lifespan_manager(app: FastAPI):
+async def lifespan_manager(app: FastAPI) -> AsyncGenerator[None]:
     """Handle startup and shutdown events using a context manager."""
     await start_app(app=app)
     yield

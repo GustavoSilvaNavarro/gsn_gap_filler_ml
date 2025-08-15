@@ -7,10 +7,9 @@ from sqlalchemy import pool
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
-from app.config import config as app_config
-
 # ? Mandatory declare the models otherwise the metadata will not point to my schemas
-from app.db.models import BaseModel, TimeSeriesData
+from app.adapters.db.models import BaseModel, TimeSeriesData
+from app.config import config as app_config
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
