@@ -1,0 +1,9 @@
+services:
+  db:
+    image: timescale/timescaledb:latest-pg17
+    environment:
+      - POSTGRES_DB=gap_filler_db
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=pa55word
+    ports:
+      - 5433:5432

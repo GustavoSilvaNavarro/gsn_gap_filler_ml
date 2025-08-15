@@ -1,13 +1,21 @@
 import matplotlib.pyplot as plt
 import pandas as pd
 from dateutil.relativedelta import relativedelta
+from fastapi import UploadFile
 from pandas import DataFrame, Timedelta
+from sqlalchemy.ext.asyncio import AsyncEngine
+
+from app.adapters import logger
+from app.server.errors import BadRequestError
+
+from .gap_filler_model import predict_gaps_on_timeseries_data
 
 
-def parse_timeseries_data(file_path: str) -> DataFrame:
+def parse_timeseries_data(file: UploadFile, file_path: str) -> DataFrame:
     """Read a CSV or Excel file and process datetime columns based on a simplified set of rules.
 
     Args:
+        file (UploadFile): The uploaded file object (.csv or .xlsx).
         file_path (str): The path to the input file (.csv or .xlsx).
 
     Returns:
@@ -19,9 +27,9 @@ def parse_timeseries_data(file_path: str) -> DataFrame:
         ValueError: If the column count is invalid or a column cannot be converted to datetime.
     """
     if file_path.endswith(".csv"):
-        df = pd.read_csv(file_path)
+        df = pd.read_csv(file)
     elif file_path.endswith(".xlsx"):
-        df = pd.read_excel(file_path)
+        df = pd.read_excel(file)
     else:
         err_msg = f"Unsupported file format -> {file_path}. Please provide a .csv or .xlsx file."
         raise TypeError(err_msg)
@@ -44,12 +52,6 @@ def parse_timeseries_data(file_path: str) -> DataFrame:
     elif num_columns == 2:
         datetime_col, _ = df.columns
 
-        try:
-            pd.to_datetime(df[datetime_col].iloc[0])
-        except (pd.errors.ParserError, ValueError, TypeError) as err:
-            err_msg = f"Error: {datetime_col} column cannot be converted to a datetime."
-            raise ValueError(err_msg) from err
-
         df["datetime"] = pd.to_datetime(df[datetime_col])
         df = df.drop(columns=[datetime_col])
     else:
@@ -61,16 +63,19 @@ def parse_timeseries_data(file_path: str) -> DataFrame:
     df = df.rename(columns={old_energy_name: "energy"})
     df = df.sort_values(by="datetime", ascending=True)
     df = df.drop_duplicates(subset=["datetime"], keep="first")
+    logger.info("👻 Data has been extracted and minimal processed has been added")
     return df[["datetime", "energy"]]
 
 
-def check_minimum_data_to_process(df: DataFrame) -> bool:
+def check_minimum_data_to_process(df: DataFrame, freq: float) -> bool:
     """Check if the DataFrame contains at least one year of data.
 
     Parameters
     ----------
     df : DataFrame
         The DataFrame containing a 'datetime' column.
+    freq : float
+        The frequency in minutes between data points.
 
     Returns
     -------
@@ -79,12 +84,12 @@ def check_minimum_data_to_process(df: DataFrame) -> bool:
     """
     max_timestamp: pd.Timestamp = df["datetime"].max()
     min_timestamp: pd.Timestamp = df["datetime"].min()
-    next_year = min_timestamp + relativedelta(years=1) - relativedelta(minutes=60)
+    next_year = min_timestamp + relativedelta(months=4) - relativedelta(minutes=freq)
 
     return max_timestamp >= next_year
 
 
-def check_frequency(df: DataFrame) -> Timedelta | None:
+def check_frequency(df: DataFrame) -> dict[str, Timedelta | float]:
     """Determine the most frequent time interval (in minutes) between consecutive 'datetime' entries in the DataFrame.
 
     Parameters
@@ -96,16 +101,39 @@ def check_frequency(df: DataFrame) -> Timedelta | None:
     -------
     float or None
         The most frequent interval in minutes if it matches one of {5, 15, 30, 60}, otherwise None.
+
+    Raises
+    ------
+    ValueError
+        If the frequency is not one of the supported values {5, 15, 30, 60}.
     """
     time_diffs = df["datetime"].diff()
 
     # Find the most frequent difference
-    most_frequent_freq: Timedelta = time_diffs.mode()[0]
-    frequency_in_minutes: float = most_frequent_freq.total_seconds() / 60
+    most_frequent_time: Timedelta = time_diffs.mode()[0]
+    frequency_in_minutes: float = most_frequent_time.total_seconds() / 60
 
-    if frequency_in_minutes in {5, 15, 30, 60}:
-        return most_frequent_freq
-    return None
+    if frequency_in_minutes not in {5, 15, 30, 60}:
+        err_msg = f"Current frequency is not supported -> freq: {frequency_in_minutes}"
+        raise ValueError(err_msg)
+
+    return {"freq_time": most_frequent_time, "freq": frequency_in_minutes}
+
+
+def resampling_5min_freq_to_15min_req(df: DataFrame) -> DataFrame:
+    """Resample a DataFrame from 5-minute frequency to 15-minute frequency by averaging.
+
+    Parameters
+    ----------
+    df : DataFrame
+        The DataFrame to be resampled.
+
+    Returns
+    -------
+    DataFrame
+        The resampled DataFrame with 15-minute frequency.
+    """
+    return df.resample("15min").mean()
 
 
 def resampling_data_based_on_freq(df: DataFrame, td: Timedelta | str) -> DataFrame:
@@ -124,6 +152,67 @@ def resampling_data_based_on_freq(df: DataFrame, td: Timedelta | str) -> DataFra
         The resampled DataFrame with a 'time' column.
     """
     return df.resample(td).asfreq()
+
+
+def process_timeseries_data_at_different_freq(file: UploadFile, file_extension: str) -> DataFrame:
+    """Process timeseries data at different frequencies, filling gaps and resampling as needed.
+
+    Parameters
+    ----------
+    file : UploadFile
+        The uploaded file object (.csv or .xlsx).
+    file_extension : str
+        The file extension indicating the type of file.
+
+    Returns
+    -------
+    DataFrame
+        The processed DataFrame resampled to the required frequency.
+
+    Raises
+    ------
+    BadRequestError
+        If the timeseries data is too short to process.
+    """
+    parsed_df = parse_timeseries_data(file=file, file_path=f".{file_extension}")
+
+    freq = check_frequency(df=parsed_df)
+    has_min_data = check_minimum_data_to_process(df=parsed_df, freq=freq["freq"])
+
+    if not has_min_data:
+        err_msg = "Timeseries data is to short, needs more data to process"
+        raise BadRequestError(err_msg)
+
+    pre_process_df = parsed_df.set_index("datetime")
+    df_resampled = resampling_data_based_on_freq(df=pre_process_df, td=freq["freq_time"])
+    new_df = predict_gaps_on_timeseries_data(df=df_resampled, target_column="energy")
+    if freq["freq"] == 15:
+        return new_df.reset_index()
+
+    if freq["freq"] == 5:
+        # NOTE: need to do a resampling by averaging
+        df = resampling_5min_freq_to_15min_req(df=new_df)
+        return df.reset_index()
+
+    default_resample = resampling_data_based_on_freq(df=new_df, td="15min")
+    df = default_resample.interpolate(method="linear")
+    return df.reset_index()
+
+
+async def store_timeseries_data(df: DataFrame, engine: AsyncEngine) -> None:
+    """Store timeseries data in the database.
+
+    Parameters
+    ----------
+    df : DataFrame
+        The DataFrame containing timeseries data with a 'datetime' column.
+    """
+    df = df.rename(columns={"datetime": "timestamp"})
+    async with engine.begin() as conn:
+        await conn.run_sync(
+            lambda sync_conn: df.to_sql(name="energy", con=sync_conn, if_exists="append", index=False, chunksize=5000)
+        )
+    logger.info("Timeseries has been successfully stored")
 
 
 def plotting_data(df: DataFrame, time_col_name: str, show: bool = True) -> None:
@@ -149,4 +238,7 @@ def plotting_data(df: DataFrame, time_col_name: str, show: bool = True) -> None:
     plt.tight_layout()
 
     if show:
+        plt.show()
+        plt.show()
+        plt.show()
         plt.show()
