@@ -7,6 +7,7 @@ from .handle_timeseries_data import (
     process_timeseries_data_at_different_freq,
     resampling_5min_freq_to_15min_req,
     resampling_data_based_on_freq,
+    store_timeseries_data,
 )
 
 __all__ = [
@@ -19,4 +20,5 @@ __all__ = [
     "process_timeseries_data_at_different_freq",
     "resampling_5min_freq_to_15min_req",
     "resampling_data_based_on_freq",
+    "store_timeseries_data",
 ]

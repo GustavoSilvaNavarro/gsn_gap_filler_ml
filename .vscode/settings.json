@@ -3,6 +3,7 @@
     "asyncpg",
     "autoflush",
     "celerybeat",
+    "chunksize",
     "datefmt",
     "dateutil",
     "dayofweek",

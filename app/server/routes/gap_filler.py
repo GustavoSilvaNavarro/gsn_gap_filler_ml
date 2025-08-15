@@ -1,8 +1,10 @@
 from typing import Annotated
 
-from fastapi import APIRouter, File, UploadFile, status
+from fastapi import APIRouter, Depends, File, UploadFile, status
+from sqlalchemy.ext.asyncio import AsyncEngine
 
-from app.services import process_timeseries_data_at_different_freq
+from app.connections import connections
+from app.services import process_timeseries_data_at_different_freq, store_timeseries_data
 
 router = APIRouter()
 
@@ -15,6 +17,7 @@ router = APIRouter()
 )
 async def gap_filler_timeseries_data(
     timeseries_file: Annotated[UploadFile, File()],
+    engine: Annotated[AsyncEngine, Depends(connections.get_engine)],
     # file_details: Annotated[str, Form()],
 ) -> dict:
     """Fill gaps in a timeseries data file using a machine learning algorithm.
@@ -31,6 +34,6 @@ async def gap_filler_timeseries_data(
     """
     file_extension = timeseries_file.filename.split(".")[-1].strip().lower()
     df = process_timeseries_data_at_different_freq(file=timeseries_file.file, file_extension=file_extension)
-    print(df)
+    await store_timeseries_data(df=df, engine=engine)
 
     return {"message": "Success"}

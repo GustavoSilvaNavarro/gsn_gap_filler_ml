@@ -36,5 +36,13 @@ class Connections:
         finally:
             await db_conn.close()
 
+    def get_engine(self) -> AsyncEngine:
+        """Exposes the SQLAlchemy AsyncEngine instance.
+
+        Returns:
+            AsyncEngine: The configured asynchronous database engine.
+        """
+        return self.engine
+
 
 connections = Connections()

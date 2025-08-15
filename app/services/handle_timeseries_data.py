@@ -3,6 +3,7 @@ import pandas as pd
 from dateutil.relativedelta import relativedelta
 from fastapi import UploadFile
 from pandas import DataFrame, Timedelta
+from sqlalchemy.ext.asyncio import AsyncEngine
 
 from app.adapters import logger
 from app.server.errors import BadRequestError
@@ -186,14 +187,32 @@ def process_timeseries_data_at_different_freq(file: UploadFile, file_extension: 
     df_resampled = resampling_data_based_on_freq(df=pre_process_df, td=freq["freq_time"])
     new_df = predict_gaps_on_timeseries_data(df=df_resampled, target_column="energy")
     if freq["freq"] == 15:
-        return new_df
+        return new_df.reset_index()
 
     if freq["freq"] == 5:
         # NOTE: need to do a resampling by averaging
-        return resampling_5min_freq_to_15min_req(df=new_df)
+        df = resampling_5min_freq_to_15min_req(df=new_df)
+        return df.reset_index()
 
     default_resample = resampling_data_based_on_freq(df=new_df, td="15min")
-    return default_resample.interpolate(method="linear")
+    df = default_resample.interpolate(method="linear")
+    return df.reset_index()
+
+
+async def store_timeseries_data(df: DataFrame, engine: AsyncEngine) -> None:
+    """Store timeseries data in the database.
+
+    Parameters
+    ----------
+    df : DataFrame
+        The DataFrame containing timeseries data with a 'datetime' column.
+    """
+    df = df.rename(columns={"datetime": "timestamp"})
+    async with engine.begin() as conn:
+        await conn.run_sync(
+            lambda sync_conn: df.to_sql(name="energy", con=sync_conn, if_exists="append", index=False, chunksize=5000)
+        )
+    logger.info("Timeseries has been successfully stored")
 
 
 def plotting_data(df: DataFrame, time_col_name: str, show: bool = True) -> None:
@@ -219,6 +238,7 @@ def plotting_data(df: DataFrame, time_col_name: str, show: bool = True) -> None:
     plt.tight_layout()
 
     if show:
+        plt.show()
         plt.show()
         plt.show()
         plt.show()
